@@ -406,7 +406,7 @@ struct PBXTargetMapper: PBXTargetMapping {
             let directory = xcodeProj.srcPath.appending(component: path)
             let membershipExceptions = membershipExceptions(for: fileSystemSynchronizedGroup)
 
-            let groupResources = try await globFiles(
+            let preFilteredResourcePaths = try await globFiles(
                 directory: directory,
                 include: [
                     // Build glob patterns for resource files and resource-compatible folders.
@@ -416,9 +416,16 @@ struct PBXTargetMapper: PBXTargetMapping {
                 ],
                 membershipExceptions: membershipExceptions
             )
-            .map {
-                ResourceFileElement(path: $0)
-            }
+
+            // Filter out resources that are already represented by a higher-level resource,
+            // such as a Contents.json file within an xcassets catalog
+            let groupResources = preFilteredResourcePaths
+                .filter { resource in
+                    preFilteredResourcePaths.contains(where: { resource.isDescendant(of: $0) }) == false
+                }
+                .map {
+                    ResourceFileElement(path: $0)
+                }
             resources.append(contentsOf: groupResources)
         }
 

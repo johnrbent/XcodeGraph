@@ -415,6 +415,22 @@ struct PBXTargetMapperTests: Sendable {
         #expect(mapped == nil)
     }
 
+    @Test
+    func testMapTargetWithSynchronizedResource() async throws {
+        // Given
+        let projectPath = AssertionsTesting.fixturePath(path: try RelativePath(validating: "BasicProject/BasicProject.xcodeproj"))
+        let xcodeProj = try XcodeProj(pathString: projectPath.pathString)
+        let target = try #require(xcodeProj.pbxproj.targets(named: "BasicProject").first)
+        let mapper = PBXTargetMapper()
+
+        // When
+        let graph = try #require(try await mapper.map(pbxTarget: target, xcodeProj: xcodeProj, projectNativeTargets: [:], packages: []))
+
+        // Then
+        #expect(graph.resources.resources.count == 1)
+        #expect(graph.resources.resources.first?.path.extension == "xcassets")
+    }
+
     // MARK: - Helper Methods
 
     private func createTarget(
