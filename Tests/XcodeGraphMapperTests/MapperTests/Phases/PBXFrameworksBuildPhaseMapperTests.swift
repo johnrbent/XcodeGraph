@@ -104,7 +104,8 @@ struct PBXFrameworksBuildPhaseMapperTests {
         )
 
         // Then
-        let frameworkPath = try AbsolutePath(validating: "/tmp/TestProject/Frameworks/MyFramework.framework")
+        let mainGroupPath = try #require(xcodeProj.mainPBXProject().mainGroup.path)
+        let frameworkPath = try AbsolutePath(validating: "\(mainGroupPath)/Frameworks/MyFramework.framework")
         #expect(
             frameworks.sorted(by: { $0.name < $1.name }) == [
                 .framework(

@@ -108,6 +108,40 @@ struct XCConfigurationMapperTests {
         #expect(debugConfig?.xcconfig?.pathString == expectedPath)
     }
 
+    @Test
+    func testPathResolutionInSynchronizedGroup() async throws {
+        // Given
+        let pbxProj = PBXProj()
+        let appGroup = PBXFileSystemSynchronizedRootGroup(
+            sourceTree: .group,
+            path: "App",
+            exceptions: []
+        ).add(to: pbxProj)
+        let config: XCBuildConfiguration = .testDebug(
+            baseConfigurationAnchor: appGroup,
+            baseConfigurationRelativePath: "Configs/Debug.xcconfig"
+        ).add(to: pbxProj)
+        let configList = XCConfigurationList.test(
+            buildConfigurations: [config],
+            defaultConfigurationName: "Debug"
+        ).add(to: pbxProj)
+        let xcodeProj = try await XcodeProj.test(configurationList: configList, pbxProj: pbxProj)
+        try appGroup.addToMainGroup(in: pbxProj)
+
+        // When
+        let settings = try mapper.map(xcodeProj: xcodeProj, configurationList: configList)
+
+        // Then
+        #expect(settings.configurations.count == 1)
+
+        let debugKey = try #require(settings.configurations.keys.first { $0.name == "Debug" })
+        let debugConfig = try #require(settings.configurations[debugKey])
+
+        let mainGroupPath = try #require(xcodeProj.mainPBXProject().mainGroup.path)
+        let expectedPath = "\(mainGroupPath)/App/Configs/Debug.xcconfig"
+        #expect(debugConfig?.xcconfig?.pathString == expectedPath)
+    }
+
     @Test("Maps array values correctly in build settings")
     func testArrayValueMapping() async throws {
         // Given

@@ -20,14 +20,21 @@ extension XcodeProj {
             pbxProj.add(object: config)
         }
 
-        let sourceDirectory = try await FileSystem().makeTemporaryDirectory(prefix: "test")
+        let xcodeprojPath: AbsolutePath
+        if let path {
+            xcodeprojPath = path
+        } else {
+            let tempDirectory = try await FileSystem().makeTemporaryDirectory(prefix: "test")
+            xcodeprojPath = tempDirectory.appending(component: "\(projectName).xcodeproj")
+        }
+        let sourceDirectory = xcodeprojPath.parentDirectory.pathString
 
         // Minimal project setup:
         let mainGroup = PBXGroup.test(
             children: [],
             sourceTree: .group,
             name: "MainGroup",
-            path: "/tmp/TestProject"
+            path: "\(sourceDirectory)/\(projectName)"
         ).add(to: pbxProj)
 
         let projectRef = PBXFileReference
@@ -54,7 +61,7 @@ extension XcodeProj {
         return XcodeProj(
             workspace: XCWorkspace(),
             pbxproj: pbxProj,
-            path: path.map(\.pathString).map { Path($0) } ?? Path("\(sourceDirectory)/\(projectName).xcodeproj")
+            path: Path(xcodeprojPath.pathString)
         )
     }
 }

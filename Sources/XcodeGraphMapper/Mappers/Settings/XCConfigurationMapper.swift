@@ -51,7 +51,13 @@ final class XCConfigurationMapper: SettingsMapping {
             let settingsDict = try mapBuildSettings(buildSettings)
 
             var xcconfigAbsolutePath: AbsolutePath?
-            if let baseConfigRef = buildConfig.baseConfiguration,
+            if let baseConfigAnchor = buildConfig.baseConfigurationAnchor,
+               let baseConfigRelativePath = buildConfig.baseConfigurationReferenceRelativePath,
+               let anchorPath = try baseConfigAnchor.fullPath(sourceRoot: xcodeProj.srcPathString)
+            {
+                let relativePath = try RelativePath(validating: baseConfigRelativePath)
+                xcconfigAbsolutePath = try AbsolutePath(validating: anchorPath).appending(relativePath)
+            } else if let baseConfigRef = buildConfig.baseConfiguration,
                let xcconfigPath = try baseConfigRef.fullPath(
                    sourceRoot: xcodeProj.srcPathString
                )
